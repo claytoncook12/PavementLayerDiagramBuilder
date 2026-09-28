@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pavement Layer Diagram Builder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Pavement Layer Diagram Builder</h1>
+        </header>
+
+        <main class="main-content">
+            <!-- Left Panel: Layer Editor -->
+            <section class="editor-panel">
+                <div class="panel-header">
+                    <h2>Layer Configuration</h2>
+                    <button id="addLayerBtn" class="btn btn-primary">+ Add Layer</button>
+                </div>
+
+                <div id="layersList" class="layers-list">
+                    <!-- Layers will be added here dynamically -->
+                </div>
+
+                <div class="editor-actions">
+                    <button id="clearAllBtn" class="btn btn-danger">Clear All</button>
+                    <button id="loadExampleBtn" class="btn btn-secondary">Load Example</button>
+                </div>
+
+                <div class="saved-diagrams-section">
+                    <div class="saved-diagrams-header">
+                        <h3>Saved Diagrams</h3>
+                        <button id="saveDiagramBtn" class="btn btn-primary btn-sm">Save Current</button>
+                    </div>
+                    <div id="savedDiagramsList" class="saved-diagrams-list">
+                        <p class="no-saved">No saved diagrams</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Diagram Preview -->
+            <section class="preview-panel">
+                <div class="panel-header">
+                    <h2>Pavement Section Diagram</h2>
+                    <div class="header-controls">
+                        <div class="scale-controls">
+                            <label for="scaleInput">Scale: 1" = </label>
+                            <input type="number" id="scaleInput" value="20" min="5" max="100" step="5">
+                            <span>px</span>
+                        </div>
+                        <div class="scale-controls">
+                            <label for="widthInput">Width:</label>
+                            <input type="number" id="widthInput" value="300" min="200" max="800" step="50">
+                            <span>px</span>
+                        </div>
+                        <button id="exportPngBtn" class="btn btn-primary">Export PNG</button>
+                    </div>
+                </div>
+
+                <div class="diagram-title-input">
+                    <label for="diagramTitle">Diagram Title:</label>
+                    <input type="text" id="diagramTitle" placeholder="e.g., Highway 101 - Section A">
+                </div>
+
+                <div class="total-thickness">
+                    Total Thickness: <span id="totalThickness">0</span> inches
+                </div>
+
+                <div class="diagram-container">
+                    <div id="pavementDiagram" class="pavement-diagram">
+                        <div class="diagram-placeholder">
+                            Add layers to see the diagram
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="diagram-legend">
+                        <h3>Legend</h3>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="legend-color layer-asphalt"></div>
+                                <span>Asphalt/HMA</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-concrete"></div>
+                                <span>Concrete/PCC</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-aggregate"></div>
+                                <span>Aggregate Base</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-opengraded"></div>
+                                <span>Open Graded Base</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-stabilized"></div>
+                                <span>Stabilized Base</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-subgrade"></div>
+                                <span>Subgrade</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color layer-subbase"></div>
+                                <span>Sub-Base</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-geogrid"></div>
+                                <span>Geogrid</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+            </section>
+        </main>
+    </div>
+
+    <!-- Layer Edit Modal -->
+    <div id="layerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Layer</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <form id="layerForm">
+                <div class="form-group">
+                    <label for="layerType">Layer Type</label>
+                    <select id="layerType" required>
+                        <option value="">Select layer type...</option>
+                        <option value="asphalt">Asphalt / HMA</option>
+                        <option value="concrete">Concrete (PCC)</option>
+                        <option value="aggregate">Aggregate Base (Unbound)</option>
+                        <option value="opengraded">Open Graded Base</option>
+                        <option value="stabilized">Stabilized Base (ATB/CTB)</option>
+                        <option value="subbase">Sub-Base</option>
+                        <option value="subgrade">Subgrade</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="materialName">Material Description</label>
+                    <input type="text" id="materialName" placeholder="e.g., PG 64-22 Surface Mix" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="thickness">Thickness (inches)</label>
+                    <input type="number" id="thickness" step="0.5" min="0.5" max="100" placeholder="e.g., 3.5" required>
+                </div>
+
+                <div class="form-group form-check" id="infiniteGroup" style="display: none;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="infiniteLayer">
+                        <span>Infinite depth (extends indefinitely)</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="geogridType">Geogrid (if any)</label>
+                    <select id="geogridType">
+                        <option value="">None</option>
+                        <option value="biaxial-light">Biaxial Light Duty</option>
+                        <option value="biaxial-heavy">Biaxial Heavy Duty</option>
+                        <option value="triaxial-light">Triaxial Light Duty</option>
+                        <option value="triaxial-heavy">Triaxial Heavy Duty</option>
+                        <option value="NX750">Tensar NX750</option>
+                        <option value="NX850">Tensar NX850</option>
+                        <option value="TX5">Tensar TX5</option>
+                        <option value="TX7">Tensar TX7</option>
+                        <option value="other">Other (specify)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customGeogridGroup" style="display: none;">
+                    <label for="customGeogrid">Custom Geogrid Name</label>
+                    <input type="text" id="customGeogrid" placeholder="Enter geogrid type">
+                </div>
+
+                <div class="form-group">
+                    <label for="geogridPosition">Geogrid Position</label>
+                    <select id="geogridPosition">
+                        <option value="bottom">Bottom of Layer</option>
+                        <option value="top">Top of Layer</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveLayerBtn">Save Layer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Save Diagram Modal -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Save Diagram</h3>
+                <button class="modal-close" id="closeSaveModal">&times;</button>
+            </div>
+            <form id="saveForm">
+                <div class="form-group">
+                    <label for="diagramName">Diagram Name</label>
+                    <input type="text" id="diagramName" placeholder="e.g., Highway 101 Section A" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelSaveBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
