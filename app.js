@@ -31,12 +31,21 @@ class PavementDiagramBuilder {
         this.layerTypeSelect = document.getElementById('layerType');
         this.materialNameInput = document.getElementById('materialName');
         this.thicknessInput = document.getElementById('thickness');
-        this.geogridTypeSelect = document.getElementById('geogridType');
-        this.customGeogridGroup = document.getElementById('customGeogridGroup');
-        this.customGeogridInput = document.getElementById('customGeogrid');
-        this.geogridPositionSelect = document.getElementById('geogridPosition');
         this.infiniteGroup = document.getElementById('infiniteGroup');
         this.infiniteLayerCheckbox = document.getElementById('infiniteLayer');
+
+        // Geosynthetic fields
+        this.geosyntheticPositionSelect = document.getElementById('geosyntheticPosition');
+        this.geosyntheticEnabledCheckbox = document.getElementById('geosyntheticEnabled');
+        this.geosyntheticOptions = document.getElementById('geosyntheticOptions');
+        this.geosyntheticNameInput = document.getElementById('geosyntheticName');
+        this.geosyntheticColorSelect = document.getElementById('geosyntheticColor');
+
+        // Geosynthetic 2 fields
+        this.geosynthetic2EnabledCheckbox = document.getElementById('geosynthetic2Enabled');
+        this.geosynthetic2Options = document.getElementById('geosynthetic2Options');
+        this.geosynthetic2NameInput = document.getElementById('geosynthetic2Name');
+        this.geosynthetic2ColorSelect = document.getElementById('geosynthetic2Color');
 
         // Display elements
         this.layersList = document.getElementById('layersList');
@@ -79,10 +88,16 @@ class PavementDiagramBuilder {
         // Form submission
         this.layerForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
 
-        // Geogrid type change (show/hide custom input)
-        this.geogridTypeSelect.addEventListener('change', () => {
-            this.customGeogridGroup.style.display =
-                this.geogridTypeSelect.value === 'other' ? 'block' : 'none';
+        // Top geosynthetic checkbox change
+        this.geosyntheticEnabledCheckbox.addEventListener('change', () => {
+            this.geosyntheticOptions.style.display =
+                this.geosyntheticEnabledCheckbox.checked ? 'block' : 'none';
+        });
+
+        // Bottom geosynthetic checkbox change
+        this.geosynthetic2EnabledCheckbox.addEventListener('change', () => {
+            this.geosynthetic2Options.style.display =
+                this.geosynthetic2EnabledCheckbox.checked ? 'block' : 'none';
         });
 
         // Layer type change - auto-fill material name suggestions and show/hide infinite option
@@ -172,8 +187,6 @@ class PavementDiagramBuilder {
             this.layerTypeSelect.value = layer.type;
             this.materialNameInput.value = layer.material;
             this.thicknessInput.value = layer.thickness;
-            this.geogridTypeSelect.value = layer.geogrid || '';
-            this.geogridPositionSelect.value = layer.geogridPosition || 'bottom';
 
             // Handle infinite option
             this.infiniteGroup.style.display = layer.type === 'subgrade' ? 'block' : 'none';
@@ -188,20 +201,26 @@ class PavementDiagramBuilder {
                 this.thicknessInput.required = true;
             }
 
-            if (layer.geogrid === 'other') {
-                this.customGeogridGroup.style.display = 'block';
-                this.customGeogridInput.value = layer.customGeogrid || '';
-            } else {
-                this.customGeogridGroup.style.display = 'none';
-                this.customGeogridInput.value = '';
-            }
+            // Handle geosynthetics
+            this.geosyntheticPositionSelect.value = layer.geosyntheticPosition || 'bottom';
+
+            this.geosyntheticEnabledCheckbox.checked = layer.geosyntheticEnabled || false;
+            this.geosyntheticOptions.style.display = layer.geosyntheticEnabled ? 'block' : 'none';
+            this.geosyntheticNameInput.value = layer.geosyntheticName || '';
+            this.geosyntheticColorSelect.value = layer.geosyntheticColor || 'black';
+
+            this.geosynthetic2EnabledCheckbox.checked = layer.geosynthetic2Enabled || false;
+            this.geosynthetic2Options.style.display = layer.geosynthetic2Enabled ? 'block' : 'none';
+            this.geosynthetic2NameInput.value = layer.geosynthetic2Name || '';
+            this.geosynthetic2ColorSelect.value = layer.geosynthetic2Color || 'black';
         } else {
             // Add mode
             this.modalTitle.textContent = 'Add Layer';
             this.layerForm.reset();
-            this.customGeogridGroup.style.display = 'none';
             this.infiniteGroup.style.display = 'none';
             this.infiniteLayerCheckbox.checked = false;
+            this.geosyntheticOptions.style.display = 'none';
+            this.geosynthetic2Options.style.display = 'none';
         }
 
         this.modal.classList.add('active');
@@ -212,11 +231,13 @@ class PavementDiagramBuilder {
         this.modal.classList.remove('active');
         this.editingLayerIndex = null;
         this.layerForm.reset();
-        this.customGeogridGroup.style.display = 'none';
         this.infiniteGroup.style.display = 'none';
         this.infiniteLayerCheckbox.checked = false;
         this.thicknessInput.parentElement.style.display = 'block';
         this.thicknessInput.required = true;
+        // Reset geosynthetic fields
+        this.geosyntheticOptions.style.display = 'none';
+        this.geosynthetic2Options.style.display = 'none';
     }
 
     handleFormSubmit(e) {
@@ -227,11 +248,14 @@ class PavementDiagramBuilder {
             material: this.materialNameInput.value.trim(),
             thickness: parseFloat(this.thicknessInput.value),
             infinite: this.layerTypeSelect.value === 'subgrade' && this.infiniteLayerCheckbox.checked,
-            geogrid: this.geogridTypeSelect.value || null,
-            geogridPosition: this.geogridPositionSelect.value,
-            customGeogrid: this.geogridTypeSelect.value === 'other'
-                ? this.customGeogridInput.value.trim()
-                : null
+            // Geosynthetics (shared position)
+            geosyntheticPosition: this.geosyntheticPositionSelect.value,
+            geosyntheticEnabled: this.geosyntheticEnabledCheckbox.checked,
+            geosyntheticName: this.geosyntheticNameInput.value.trim(),
+            geosyntheticColor: this.geosyntheticColorSelect.value,
+            geosynthetic2Enabled: this.geosynthetic2EnabledCheckbox.checked,
+            geosynthetic2Name: this.geosynthetic2NameInput.value.trim(),
+            geosynthetic2Color: this.geosynthetic2ColorSelect.value
         };
 
         if (this.editingLayerIndex !== null) {
@@ -282,41 +306,61 @@ class PavementDiagramBuilder {
                 type: 'asphalt',
                 material: 'Surface Mix PG 76-22',
                 thickness: 1.5,
-                geogrid: null,
-                geogridPosition: 'bottom',
-                customGeogrid: null
+                geosyntheticPosition: 'bottom',
+                geosyntheticEnabled: false,
+                geosyntheticName: '',
+                geosyntheticColor: 'black',
+                geosynthetic2Enabled: false,
+                geosynthetic2Name: '',
+                geosynthetic2Color: 'black'
             },
             {
                 type: 'asphalt',
                 material: 'Binder Mix PG 64-22',
                 thickness: 3,
-                geogrid: null,
-                geogridPosition: 'bottom',
-                customGeogrid: null
+                geosyntheticPosition: 'bottom',
+                geosyntheticEnabled: false,
+                geosyntheticName: '',
+                geosyntheticColor: 'black',
+                geosynthetic2Enabled: false,
+                geosynthetic2Name: '',
+                geosynthetic2Color: 'black'
             },
             {
                 type: 'asphalt',
                 material: 'Base Mix PG 64-22',
                 thickness: 4,
-                geogrid: null,
-                geogridPosition: 'bottom',
-                customGeogrid: null
+                geosyntheticPosition: 'bottom',
+                geosyntheticEnabled: true,
+                geosyntheticName: 'Tensar TX5',
+                geosyntheticColor: 'red',
+                geosynthetic2Enabled: true,
+                geosynthetic2Name: 'Tensar TX7',
+                geosynthetic2Color: 'blue'
             },
             {
                 type: 'aggregate',
                 material: 'Dense Graded Aggregate Base (DGA)',
                 thickness: 8,
-                geogrid: 'NX750',
-                geogridPosition: 'bottom',
-                customGeogrid: null
+                geosyntheticPosition: 'bottom',
+                geosyntheticEnabled: true,
+                geosyntheticName: 'Tensar NX750',
+                geosyntheticColor: 'green',
+                geosynthetic2Enabled: false,
+                geosynthetic2Name: '',
+                geosynthetic2Color: 'black'
             },
             {
                 type: 'subgrade',
                 material: 'Compacted Subgrade (A-7-6)',
                 thickness: 12,
-                geogrid: null,
-                geogridPosition: 'bottom',
-                customGeogrid: null
+                geosyntheticPosition: 'bottom',
+                geosyntheticEnabled: false,
+                geosyntheticName: '',
+                geosyntheticColor: 'black',
+                geosynthetic2Enabled: false,
+                geosynthetic2Name: '',
+                geosynthetic2Color: 'black'
             }
         ];
 
@@ -337,8 +381,8 @@ class PavementDiagramBuilder {
         return names[type] || type;
     }
 
-    getGeogridDisplayName(geogrid, customGeogrid) {
-        if (!geogrid) return null;
+    getGeosyntheticDisplayName(geosynthetic, customGeosynthetic) {
+        if (!geosynthetic) return null;
 
         const names = {
             'biaxial-light': 'Biaxial Light Duty',
@@ -349,9 +393,9 @@ class PavementDiagramBuilder {
             'NX850': 'Tensar NX850',
             'TX5': 'Tensar TX5',
             'TX7': 'Tensar TX7',
-            'other': customGeogrid || 'Custom Geogrid'
+            'other': customGeosynthetic || 'Custom Geosynthetic'
         };
-        return names[geogrid] || geogrid;
+        return names[geosynthetic] || geosynthetic;
     }
 
     renderLayersList() {
@@ -390,10 +434,11 @@ class PavementDiagramBuilder {
                         </button>
                     </div>
                 </div>
-                ${layer.geogrid ? `
-                    <div class="layer-geogrid-badge">
-                        ${this.getGeogridDisplayName(layer.geogrid, layer.customGeogrid)}
-                        (${layer.geogridPosition === 'top' ? 'Top' : 'Bottom'})
+                ${(layer.geosyntheticEnabled || layer.geosynthetic2Enabled) ? `
+                    <div class="layer-geosynthetic-badges">
+                        ${layer.geosyntheticEnabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${layer.geosyntheticColor};">${this.escapeHtml(layer.geosyntheticName) || 'Geosynthetic 1'}</div>` : ''}
+                        ${layer.geosynthetic2Enabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${layer.geosynthetic2Color};">${this.escapeHtml(layer.geosynthetic2Name) || 'Geosynthetic 2'}</div>` : ''}
+                        <span class="geosynthetic-position-label">(${layer.geosyntheticPosition === 'top' ? 'Top' : 'Bottom'})</span>
                     </div>
                 ` : ''}
             </div>
@@ -424,19 +469,33 @@ class PavementDiagramBuilder {
             // Calculate height based on thickness, with minimum (infinite layers get fixed height)
             let layerHeight = layer.infinite ? 60 : Math.max(layer.thickness * this.scale, minLayerHeight);
 
-            // Build geogrid indicator HTML
-            let geogridHTML = '';
-            if (layer.geogrid) {
-                const geogridClass = `geogrid-${layer.geogrid}`;
-                const positionClass = `position-${layer.geogridPosition}`;
-                const displayName = this.getGeogridDisplayName(layer.geogrid, layer.customGeogrid);
+            // Build geosynthetic indicator HTML (both at same position)
+            const geosyntheticPosition = layer.geosyntheticPosition || 'bottom';
+            let geosyntheticHTML = '';
+            let geosyntheticLabelsHTML = '';
 
-                geogridHTML = `
-                    <div class="geogrid-indicator ${geogridClass} ${positionClass}">
-                        <div class="geogrid-line"></div>
-                        <span class="geogrid-label">${displayName}</span>
+            if (layer.geosyntheticEnabled) {
+                const displayName = layer.geosyntheticName || 'Geosynthetic 1';
+
+                geosyntheticHTML = `
+                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-primary" style="--geosynthetic-color: ${layer.geosyntheticColor};">
+                        <div class="geosynthetic-line" style="border-color: ${layer.geosyntheticColor}; background: repeating-linear-gradient(90deg, ${layer.geosyntheticColor} 0px, ${layer.geosyntheticColor} 10px, #fff 10px, #fff 14px);"></div>
                     </div>
                 `;
+                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-primary" style="border-color: ${layer.geosyntheticColor};">${this.escapeHtml(displayName)}</span>`;
+            }
+
+            // Build second geosynthetic indicator HTML (same position, offset)
+            let geosynthetic2HTML = '';
+            if (layer.geosynthetic2Enabled) {
+                const displayName2 = layer.geosynthetic2Name || 'Geosynthetic 2';
+
+                geosynthetic2HTML = `
+                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-secondary" style="--geosynthetic-color: ${layer.geosynthetic2Color};">
+                        <div class="geosynthetic-line" style="border-color: ${layer.geosynthetic2Color}; background: repeating-linear-gradient(90deg, ${layer.geosynthetic2Color} 0px, ${layer.geosynthetic2Color} 10px, #fff 10px, #fff 14px);"></div>
+                    </div>
+                `;
+                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-secondary" style="border-color: ${layer.geosynthetic2Color};">${this.escapeHtml(displayName2)}</span>`;
             }
 
             // Thickness column cell
@@ -451,7 +510,9 @@ class PavementDiagramBuilder {
                 <div class="diagram-layer" style="height: ${layerHeight}px;" data-index="${index}">
                     <div class="layer-visual layer-${layer.type}">
                         <div class="layer-label">${this.escapeHtml(layer.material)}</div>
-                        ${geogridHTML}
+                        ${geosyntheticHTML}
+                        ${geosynthetic2HTML}
+                        ${geosyntheticLabelsHTML}
                     </div>
                 </div>
             `;
@@ -520,7 +581,7 @@ class PavementDiagramBuilder {
 
         // Draw layers
         let currentY = padding;
-        const geogridsToRender = []; // Collect geogrids to draw after all layers
+        const geosyntheticsToRender = []; // Collect geosynthetics to draw after all layers
 
         this.layers.forEach((layer, index) => {
             // For infinite layers, use a fixed display height
@@ -578,24 +639,49 @@ class PavementDiagramBuilder {
             ctx.textBaseline = 'middle';
             ctx.fillText(labelText, labelX, labelY);
 
-            // Collect geogrid info to draw later (on top of all layers)
-            if (layer.geogrid) {
-                const geogridY = layer.geogridPosition === 'top' ? currentY : currentY + layerHeight;
-                geogridsToRender.push({
+            // Collect geosynthetic info (both at same position)
+            const geosyntheticPosition = layer.geosyntheticPosition || 'bottom';
+            const baseY = geosyntheticPosition === 'top' ? currentY : currentY + layerHeight;
+            const offset = geosyntheticPosition === 'top' ? 8 : -8;
+            const hasBothGeosynthetics = layer.geosyntheticEnabled && layer.geosynthetic2Enabled;
+            // Geosynthetic label Y is at midpoint between both lines if both exist
+            const geosyntheticLabelY = hasBothGeosynthetics ? baseY + (offset / 2) : baseY;
+
+            if (layer.geosyntheticEnabled) {
+                geosyntheticsToRender.push({
                     x: layerX,
-                    y: geogridY,
+                    y: baseY,
+                    labelY: geosyntheticLabelY,
                     width: layerWidth,
-                    type: layer.geogrid,
-                    customGeogrid: layer.customGeogrid
+                    name: layer.geosyntheticName || 'Geosynthetic 1',
+                    color: layer.geosyntheticColor,
+                    isPrimary: true
+                });
+            }
+
+            if (layer.geosynthetic2Enabled) {
+                geosyntheticsToRender.push({
+                    x: layerX,
+                    y: baseY + offset,
+                    labelY: hasBothGeosynthetics ? geosyntheticLabelY : baseY + offset,
+                    width: layerWidth,
+                    name: layer.geosynthetic2Name || 'Geosynthetic 2',
+                    color: layer.geosynthetic2Color,
+                    isPrimary: false
                 });
             }
 
             currentY += layerHeight;
         });
 
-        // Draw all geogrids on top of layers
-        geogridsToRender.forEach(geogrid => {
-            this.drawGeogrid(ctx, geogrid.x, geogrid.y, geogrid.width, geogrid.type, geogrid.customGeogrid);
+        // Draw all geosynthetic lines first
+        geosyntheticsToRender.forEach(geosynthetic => {
+            this.drawGeosyntheticLine(ctx, geosynthetic.x, geosynthetic.y, geosynthetic.width, geosynthetic.color);
+        });
+
+        // Then draw all geosynthetic labels on top (at midpoint Y)
+        geosyntheticsToRender.forEach(geosynthetic => {
+            this.drawGeosyntheticLabel(ctx, geosynthetic.x, geosynthetic.labelY, geosynthetic.width, geosynthetic.name, geosynthetic.color, geosynthetic.isPrimary);
         });
 
         // Outer border
@@ -706,17 +792,18 @@ class PavementDiagramBuilder {
         ctx.restore();
     }
 
-    drawGeogrid(ctx, x, y, width, geogridType, customGeogrid) {
-        // Geogrid line
+    drawGeosyntheticLine(ctx, x, y, width, color) {
         ctx.save();
 
-        const isColoredType = geogridType.startsWith('biaxial') || geogridType.startsWith('triaxial');
-        let lineColor = '#cc0000';
-
-        if (geogridType === 'biaxial-light') lineColor = '#22c55e';
-        else if (geogridType === 'biaxial-heavy') lineColor = '#f59e0b';
-        else if (geogridType === 'triaxial-light') lineColor = '#3b82f6';
-        else if (geogridType === 'triaxial-heavy') lineColor = '#ef4444';
+        // Map color names to hex values
+        const colorMap = {
+            'black': '#000000',
+            'red': '#cc0000',
+            'green': '#22c55e',
+            'yellow': '#eab308',
+            'blue': '#3b82f6'
+        };
+        const lineColor = colorMap[color] || '#000000';
 
         // Draw dashed line
         ctx.strokeStyle = lineColor;
@@ -738,16 +825,30 @@ class PavementDiagramBuilder {
         ctx.lineTo(x + width, y + 3);
         ctx.stroke();
 
-        // Geogrid label (right aligned)
-        const displayName = this.getGeogridDisplayName(geogridType, customGeogrid);
+        ctx.restore();
+    }
+
+    drawGeosyntheticLabel(ctx, x, y, width, name, color, isPrimary = true) {
+        ctx.save();
+
+        // Map color names to hex values
+        const colorMap = {
+            'black': '#000000',
+            'red': '#cc0000',
+            'green': '#22c55e',
+            'yellow': '#eab308',
+            'blue': '#3b82f6'
+        };
+        const borderColor = colorMap[color] || '#000000';
+
         ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
-        const textWidth = ctx.measureText(displayName).width;
-        const labelX = x + width - textWidth - 16;
+        const textWidth = ctx.measureText(name).width;
+        const labelX = isPrimary ? x + width - textWidth - 16 : x + 16;
         const labelPadding = 6;
 
-        // Label background (yellow)
-        ctx.fillStyle = '#ffeb3b';
-        ctx.strokeStyle = '#000000';
+        // Label background (white, matching other labels)
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.strokeStyle = borderColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.roundRect(labelX - labelPadding, y - 10, textWidth + labelPadding * 2, 20, 3);
@@ -758,7 +859,7 @@ class PavementDiagramBuilder {
         ctx.fillStyle = '#000000';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(displayName, labelX, y);
+        ctx.fillText(name, labelX, y);
 
         ctx.restore();
     }
@@ -870,6 +971,7 @@ class PavementDiagramBuilder {
                         <div class="saved-diagram-date">${dateStr} &bull; ${diagram.layers.length} layers</div>
                     </div>
                     <div class="saved-diagram-actions">
+                        <button class="btn-save" onclick="app.overwriteDiagram('${diagram.id}')" title="Save current to this">&#128190;</button>
                         <button class="btn-delete" onclick="app.deleteDiagram('${diagram.id}')" title="Delete">&#10005;</button>
                     </div>
                 </div>
@@ -907,6 +1009,39 @@ class PavementDiagramBuilder {
         const filteredDiagrams = savedDiagrams.filter(d => d.id !== id);
         localStorage.setItem('pavementDiagrams', JSON.stringify(filteredDiagrams));
 
+        this.renderSavedDiagramsList();
+    }
+
+    overwriteDiagram(id) {
+        if (this.layers.length === 0) {
+            alert('No layers to save. Add layers first.');
+            return;
+        }
+
+        const savedDiagrams = this.getSavedDiagrams();
+        const diagramIndex = savedDiagrams.findIndex(d => d.id === id);
+
+        if (diagramIndex === -1) {
+            alert('Diagram not found.');
+            return;
+        }
+
+        const existingName = savedDiagrams[diagramIndex].name;
+        if (!confirm(`Overwrite "${existingName}" with current configuration?`)) {
+            return;
+        }
+
+        savedDiagrams[diagramIndex] = {
+            id: id,
+            name: existingName,
+            savedAt: new Date().toISOString(),
+            layers: this.layers,
+            scale: this.scale,
+            diagramWidth: this.diagramWidth,
+            diagramTitle: this.diagramTitleInput.value.trim()
+        };
+
+        localStorage.setItem('pavementDiagrams', JSON.stringify(savedDiagrams));
         this.renderSavedDiagramsList();
     }
 }

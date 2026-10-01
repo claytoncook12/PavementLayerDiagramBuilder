@@ -32,7 +32,7 @@
                 <div class="saved-diagrams-section">
                     <div class="saved-diagrams-header">
                         <h3>Saved Diagrams</h3>
-                        <button id="saveDiagramBtn" class="btn btn-primary btn-sm">Save Current</button>
+                        <button id="saveDiagramBtn" class="btn btn-primary btn-sm">Save New</button>
                     </div>
                     <div id="savedDiagramsList" class="saved-diagrams-list">
                         <p class="no-saved">No saved diagrams</p>
@@ -108,8 +108,8 @@
                                 <span>Sub-Base</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-geogrid"></div>
-                                <span>Geogrid</span>
+                                <div class="legend-geosynthetic"></div>
+                                <span>Geosynthetic</span>
                             </div>
                         </div>
                     </div>
@@ -159,33 +159,71 @@
                     </label>
                 </div>
 
-                <div class="form-group">
-                    <label for="geogridType">Geogrid (if any)</label>
-                    <select id="geogridType">
-                        <option value="">None</option>
-                        <option value="biaxial-light">Biaxial Light Duty</option>
-                        <option value="biaxial-heavy">Biaxial Heavy Duty</option>
-                        <option value="triaxial-light">Triaxial Light Duty</option>
-                        <option value="triaxial-heavy">Triaxial Heavy Duty</option>
-                        <option value="NX750">Tensar NX750</option>
-                        <option value="NX850">Tensar NX850</option>
-                        <option value="TX5">Tensar TX5</option>
-                        <option value="TX7">Tensar TX7</option>
-                        <option value="other">Other (specify)</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="customGeogridGroup" style="display: none;">
-                    <label for="customGeogrid">Custom Geogrid Name</label>
-                    <input type="text" id="customGeogrid" placeholder="Enter geogrid type">
-                </div>
+                <hr class="form-divider">
+                <h4 class="form-section-title">Geosynthetics</h4>
 
                 <div class="form-group">
-                    <label for="geogridPosition">Geogrid Position</label>
-                    <select id="geogridPosition">
+                    <label for="geosyntheticPosition">Geosynthetic Position</label>
+                    <select id="geosyntheticPosition">
                         <option value="bottom">Bottom of Layer</option>
                         <option value="top">Top of Layer</option>
                     </select>
+                </div>
+
+                <div class="geosynthetic-row">
+                    <div class="geosynthetic-item">
+                        <div class="form-group form-check">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="geosyntheticEnabled">
+                                <span>Geosynthetic 1</span>
+                            </label>
+                        </div>
+
+                        <div id="geosyntheticOptions" style="display: none;">
+                            <div class="form-group">
+                                <label for="geosyntheticName">Name</label>
+                                <input type="text" id="geosyntheticName" placeholder="e.g., Tensar TX5">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="geosyntheticColor">Color</label>
+                                <select id="geosyntheticColor">
+                                    <option value="black">Black</option>
+                                    <option value="red">Red</option>
+                                    <option value="green">Green</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="blue">Blue</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="geosynthetic-item">
+                        <div class="form-group form-check">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="geosynthetic2Enabled">
+                                <span>Geosynthetic 2</span>
+                            </label>
+                        </div>
+
+                        <div id="geosynthetic2Options" style="display: none;">
+                            <div class="form-group">
+                                <label for="geosynthetic2Name">Name</label>
+                                <input type="text" id="geosynthetic2Name" placeholder="e.g., Tensar TX5">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="geosynthetic2Color">Color</label>
+                                <select id="geosynthetic2Color">
+                                    <option value="black">Black</option>
+                                    <option value="red">Red</option>
+                                    <option value="green">Green</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="blue">Blue</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-actions">
