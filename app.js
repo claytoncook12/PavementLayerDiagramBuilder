@@ -774,6 +774,7 @@ class PavementDiagramBuilder {
     drawLayerTexture(ctx, type, x, y, width, height, colors) {
         const config = this.patternGenerator.getLayerConfig(type);
         const pattern = config?.pattern || 'scattered-dots';
+        const params = config?.patternParams || {};
 
         ctx.save();
         ctx.beginPath();
@@ -781,10 +782,11 @@ class PavementDiagramBuilder {
         ctx.clip();
 
         if (pattern === 'diagonal-stripes') {
-            // Diagonal stripes (asphalt)
+            // Diagonal stripes (asphalt) - use config spacing
+            const spacing = params.spacing || 4;
             ctx.strokeStyle = colors.dark;
-            ctx.lineWidth = 2;
-            for (let i = -height; i < width + height; i += 4) {
+            ctx.lineWidth = params.stripeWidth || 2;
+            for (let i = -height; i < width + height; i += spacing) {
                 ctx.beginPath();
                 ctx.moveTo(x + i, y);
                 ctx.lineTo(x + i + height, y + height);
@@ -792,33 +794,57 @@ class PavementDiagramBuilder {
             }
         } else if (pattern === 'speckle') {
             // Fine speckled pattern (concrete)
+            // CSS: 8 spots per tile, tileSize = density (default 80)
+            const tileSize = params.density || 80;
+            const spotsPerTile = 8;
+            const minR = params.minRadius || 0.5;
+            const maxR = params.maxRadius || 1.5;
+            // Calculate total spots to match CSS tiling density
+            const numSpots = Math.ceil((width * height) / (tileSize * tileSize) * spotsPerTile);
+
             ctx.fillStyle = colors.dark;
-            for (let i = 0; i < width * height / 80; i++) {
+            for (let i = 0; i < numSpots; i++) {
                 const dotX = x + Math.random() * width;
                 const dotY = y + Math.random() * height;
-                const radius = 0.5 + Math.random() * 1.5;
+                const radius = minR + Math.random() * (maxR - minR);
                 ctx.beginPath();
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
         } else if (pattern === 'scattered-dots') {
             // Scattered dots (aggregate)
+            // CSS: 6 spots per tile, tileSize = backgroundSize (default 30)
+            const tileSize = params.backgroundSize || 30;
+            const spotsPerTile = 6;
+            const minR = params.minRadius || 2;
+            const maxR = params.maxRadius || 4;
+            // Calculate total spots to match CSS tiling density
+            const numSpots = Math.ceil((width * height) / (tileSize * tileSize) * spotsPerTile);
+
             ctx.fillStyle = colors.dark;
-            for (let i = 0; i < width * height / 200; i++) {
+            for (let i = 0; i < numSpots; i++) {
                 const dotX = x + Math.random() * width;
                 const dotY = y + Math.random() * height;
-                const radius = 2 + Math.random() * 2;
+                const radius = minR + Math.random() * (maxR - minR);
                 ctx.beginPath();
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
         } else if (pattern === 'large-stones') {
             // Large stones (open-graded)
+            // CSS: 8 spots per tile, tileSize = backgroundSize (default 40)
+            const tileSize = params.backgroundSize || 40;
+            const spotsPerTile = 8;
+            const minR = params.minRadius || 5;
+            const maxR = params.maxRadius || 6;
+            // Calculate total spots to match CSS tiling density
+            const numSpots = Math.ceil((width * height) / (tileSize * tileSize) * spotsPerTile);
+
             ctx.fillStyle = colors.dark;
-            for (let i = 0; i < width * height / 400; i++) {
+            for (let i = 0; i < numSpots; i++) {
                 const dotX = x + Math.random() * width;
                 const dotY = y + Math.random() * height;
-                const radius = 4 + Math.random() * 3;
+                const radius = minR + Math.random() * (maxR - minR);
                 ctx.beginPath();
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -889,9 +915,14 @@ class PavementDiagramBuilder {
             }
         } else if (pattern === 'stabilized-mottled') {
             // Mottled pattern with gray spots
-            const params = config?.patternParams || {};
+            // CSS: 15 spots per tile, tileSize = mottleDensity * 80
             const spacing = params.spacing || 10;
             const grayColor = params.grayColor || '#7a8494';
+            const mottleDensity = params.mottleDensity || 0.5;
+            const tileSize = Math.max(8, Math.round(mottleDensity * 80));
+            const spotsPerTile = 15;
+            const minR = params.minRadius || 2;
+            const maxR = params.maxRadius || 3;
 
             // Draw base diagonal stripes
             ctx.strokeStyle = colors.dark;
@@ -903,12 +934,13 @@ class PavementDiagramBuilder {
                 ctx.stroke();
             }
 
-            // Draw gray spots
+            // Draw gray spots - calculate to match CSS tiling density
+            const numSpots = Math.ceil((width * height) / (tileSize * tileSize) * spotsPerTile);
             ctx.fillStyle = grayColor;
-            for (let i = 0; i < width * height / 150; i++) {
+            for (let i = 0; i < numSpots; i++) {
                 const dotX = x + Math.random() * width;
                 const dotY = y + Math.random() * height;
-                const radius = 2 + Math.random() * 2;
+                const radius = minR + Math.random() * (maxR - minR);
                 ctx.beginPath();
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
