@@ -6,11 +6,37 @@ class PavementDiagramBuilder {
         this.editingLayerIndex = null;
         this.scale = 20; // pixels per inch
         this.diagramWidth = 300; // diagram width in pixels
+        this.patternGenerator = patternGenerator;
+    }
+
+    async init() {
+        // Load pattern configs first
+        await this.patternGenerator.loadConfigs();
 
         this.initElements();
         this.initEventListeners();
+        this.populateLayerTypeDropdown();
+        this.renderLegend();
+        this.loadLastSavedDiagram();
+    }
+
+    loadLastSavedDiagram() {
+        const savedDiagrams = this.getSavedDiagrams();
+        if (savedDiagrams.length > 0) {
+            // Find the diagram with the most recent savedAt timestamp
+            const lastDiagram = savedDiagrams.reduce((latest, current) => {
+                return new Date(current.savedAt) > new Date(latest.savedAt) ? current : latest;
+            });
+            this.layers = lastDiagram.layers;
+            this.scale = lastDiagram.scale || 20;
+            this.diagramWidth = lastDiagram.diagramWidth || 300;
+            this.scaleInput.value = this.scale;
+            this.widthInput.value = this.diagramWidth;
+            this.diagramTitleInput.value = lastDiagram.diagramTitle || '';
+        }
         this.renderLayersList();
         this.renderDiagram();
+        this.renderSavedDiagramsList();
     }
 
     initElements() {
@@ -63,6 +89,9 @@ class PavementDiagramBuilder {
         this.saveForm = document.getElementById('saveForm');
         this.diagramNameInput = document.getElementById('diagramName');
         this.savedDiagramsList = document.getElementById('savedDiagramsList');
+
+        // Legend
+        this.legendItems = document.getElementById('legendItems');
     }
 
     initEventListeners() {
@@ -161,19 +190,9 @@ class PavementDiagramBuilder {
     }
 
     suggestMaterialName() {
-        const suggestions = {
-            'asphalt': 'Surface Mix PG 64-22',
-            'concrete': 'Portland Cement Concrete (PCC)',
-            'aggregate': 'Dense Graded Aggregate (DGA)',
-            'opengraded': 'Open Graded Drainage Layer (OGDL)',
-            'stabilized': 'Asphalt Treated Base (ATB)',
-            'subbase': 'Crushed Stone Sub-Base',
-            'subgrade': 'Compacted Subgrade'
-        };
-
         const type = this.layerTypeSelect.value;
         if (type && !this.materialNameInput.value) {
-            this.materialNameInput.value = suggestions[type] || '';
+            this.materialNameInput.value = this.patternGenerator.getMaterialSuggestion(type);
         }
     }
 
@@ -369,16 +388,7 @@ class PavementDiagramBuilder {
     }
 
     getLayerTypeName(type) {
-        const names = {
-            'asphalt': 'Asphalt/HMA',
-            'concrete': 'Concrete/PCC',
-            'aggregate': 'Aggregate Base',
-            'opengraded': 'Open Graded Base',
-            'stabilized': 'Stabilized Base',
-            'subbase': 'Sub-Base',
-            'subgrade': 'Subgrade'
-        };
-        return names[type] || type;
+        return this.patternGenerator.getLayerTypeName(type);
     }
 
     getGeosyntheticDisplayName(geosynthetic, customGeosynthetic) {
@@ -408,11 +418,13 @@ class PavementDiagramBuilder {
             return;
         }
 
-        this.layersList.innerHTML = this.layers.map((layer, index) => `
+        this.layersList.innerHTML = this.layers.map((layer, index) => {
+            const layerColors = this.patternGenerator.getLayerColors(layer.type);
+            return `
             <div class="layer-card" data-index="${index}">
                 <div class="layer-card-header">
                     <div class="layer-number">${index + 1}</div>
-                    <div class="layer-type-indicator type-${layer.type}"></div>
+                    <div class="layer-type-indicator" style="background: ${layerColors.main};"></div>
                     <div class="layer-info">
                         <div class="layer-material">${this.escapeHtml(layer.material)}</div>
                         <div class="layer-details">
@@ -436,13 +448,13 @@ class PavementDiagramBuilder {
                 </div>
                 ${(layer.geosyntheticEnabled || layer.geosynthetic2Enabled) ? `
                     <div class="layer-geosynthetic-badges">
-                        ${layer.geosyntheticEnabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${layer.geosyntheticColor};">${this.escapeHtml(layer.geosyntheticName) || 'Geosynthetic 1'}</div>` : ''}
-                        ${layer.geosynthetic2Enabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${layer.geosynthetic2Color};">${this.escapeHtml(layer.geosynthetic2Name) || 'Geosynthetic 2'}</div>` : ''}
+                        ${layer.geosyntheticEnabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${this.patternGenerator.getGeosyntheticColor(layer.geosyntheticColor)};">${this.escapeHtml(layer.geosyntheticName) || 'Geosynthetic 1'}</div>` : ''}
+                        ${layer.geosynthetic2Enabled ? `<div class="layer-geosynthetic-badge" style="border-color: ${this.patternGenerator.getGeosyntheticColor(layer.geosynthetic2Color)};">${this.escapeHtml(layer.geosynthetic2Name) || 'Geosynthetic 2'}</div>` : ''}
                         <span class="geosynthetic-position-label">(${layer.geosyntheticPosition === 'top' ? 'Top' : 'Bottom'})</span>
                     </div>
                 ` : ''}
             </div>
-        `).join('');
+        `}).join('');
     }
 
     renderDiagram() {
@@ -476,26 +488,30 @@ class PavementDiagramBuilder {
 
             if (layer.geosyntheticEnabled) {
                 const displayName = layer.geosyntheticName || 'Geosynthetic 1';
+                const geoColor = this.patternGenerator.getGeosyntheticColor(layer.geosyntheticColor);
+                const geoStyle = this.patternGenerator.getGeosyntheticLineStyle();
 
                 geosyntheticHTML = `
-                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-primary" style="--geosynthetic-color: ${layer.geosyntheticColor};">
-                        <div class="geosynthetic-line" style="border-color: ${layer.geosyntheticColor}; background: repeating-linear-gradient(90deg, ${layer.geosyntheticColor} 0px, ${layer.geosyntheticColor} 10px, #fff 10px, #fff 14px);"></div>
+                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-primary">
+                        <div class="geosynthetic-line" style="border-color: ${geoColor}; background: repeating-linear-gradient(90deg, ${geoColor} 0px, ${geoColor} ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth + geoStyle.gapWidth}px); box-shadow: 0 0 6px ${geoColor}, 0 2px 4px rgba(0,0,0,0.3);"></div>
                     </div>
                 `;
-                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-primary" style="border-color: ${layer.geosyntheticColor};">${this.escapeHtml(displayName)}</span>`;
+                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-primary" style="border-color: ${geoColor};">${this.escapeHtml(displayName)}</span>`;
             }
 
             // Build second geosynthetic indicator HTML (same position, offset)
             let geosynthetic2HTML = '';
             if (layer.geosynthetic2Enabled) {
                 const displayName2 = layer.geosynthetic2Name || 'Geosynthetic 2';
+                const geo2Color = this.patternGenerator.getGeosyntheticColor(layer.geosynthetic2Color);
+                const geoStyle = this.patternGenerator.getGeosyntheticLineStyle();
 
                 geosynthetic2HTML = `
-                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-secondary" style="--geosynthetic-color: ${layer.geosynthetic2Color};">
-                        <div class="geosynthetic-line" style="border-color: ${layer.geosynthetic2Color}; background: repeating-linear-gradient(90deg, ${layer.geosynthetic2Color} 0px, ${layer.geosynthetic2Color} 10px, #fff 10px, #fff 14px);"></div>
+                    <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-secondary">
+                        <div class="geosynthetic-line" style="border-color: ${geo2Color}; background: repeating-linear-gradient(90deg, ${geo2Color} 0px, ${geo2Color} ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth + geoStyle.gapWidth}px); box-shadow: 0 0 6px ${geo2Color}, 0 2px 4px rgba(0,0,0,0.3);"></div>
                     </div>
                 `;
-                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-secondary" style="border-color: ${layer.geosynthetic2Color};">${this.escapeHtml(displayName2)}</span>`;
+                geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-secondary" style="border-color: ${geo2Color};">${this.escapeHtml(displayName2)}</span>`;
             }
 
             // Thickness column cell
@@ -508,7 +524,7 @@ class PavementDiagramBuilder {
             // Layer visual
             layersColumnHTML += `
                 <div class="diagram-layer" style="height: ${layerHeight}px;" data-index="${index}">
-                    <div class="layer-visual layer-${layer.type}">
+                    <div class="layer-visual" data-layer-type="${layer.type}">
                         <div class="layer-label">${this.escapeHtml(layer.material)}</div>
                         ${geosyntheticHTML}
                         ${geosynthetic2HTML}
@@ -531,6 +547,57 @@ class PavementDiagramBuilder {
 
         // Apply dynamic width
         this.pavementDiagram.style.width = (this.diagramWidth + 50) + 'px'; // +50 for thickness column
+
+        // Apply dynamic layer styles from config
+        this.applyLayerStyles();
+    }
+
+    applyLayerStyles() {
+        const layerVisuals = this.pavementDiagram.querySelectorAll('.layer-visual[data-layer-type]');
+        layerVisuals.forEach(element => {
+            const type = element.dataset.layerType;
+            this.patternGenerator.applyLayerStyle(element, type);
+        });
+    }
+
+    populateLayerTypeDropdown() {
+        const layerTypes = this.patternGenerator.getLayerTypes();
+        let html = '<option value="">Select layer type...</option>';
+
+        for (const [type, config] of Object.entries(layerTypes)) {
+            html += `<option value="${type}">${config.name}</option>`;
+        }
+
+        this.layerTypeSelect.innerHTML = html;
+    }
+
+    renderLegend() {
+        const layerTypes = this.patternGenerator.getLayerTypes();
+        let html = '';
+
+        // Generate legend items for each layer type
+        for (const [type, config] of Object.entries(layerTypes)) {
+            const background = this.patternGenerator.generateCSSBackground(type);
+            const backgroundSize = this.patternGenerator.getCSSBackgroundSize(type);
+            const style = `background: ${background};${backgroundSize !== 'auto' ? ` background-size: ${backgroundSize};` : ''}`;
+
+            html += `
+                <div class="legend-item">
+                    <div class="legend-color" style="${style}"></div>
+                    <span>${config.name}</span>
+                </div>
+            `;
+        }
+
+        // Add geosynthetic legend item
+        html += `
+            <div class="legend-item">
+                <div class="legend-geosynthetic"></div>
+                <span>Geosynthetic</span>
+            </div>
+        `;
+
+        this.legendItems.innerHTML = html;
     }
 
     escapeHtml(text) {
@@ -604,13 +671,13 @@ class PavementDiagramBuilder {
                 ctx.fillText(`${layer.thickness}"`, padding + thicknessColWidth / 2, currentY + layerHeight / 2);
             }
 
-            // Draw layer visual
-            const layerColor = this.getLayerColor(layer.type);
-            ctx.fillStyle = layerColor.main;
+            // Draw layer visual - get colors from config
+            const layerColors = this.patternGenerator.getLayerColors(layer.type);
+            ctx.fillStyle = layerColors.main;
             ctx.fillRect(layerX, currentY, layerWidth, layerHeight);
 
             // Draw texture pattern
-            this.drawLayerTexture(ctx, layer.type, layerX, currentY, layerWidth, layerHeight, layerColor);
+            this.drawLayerTexture(ctx, layer.type, layerX, currentY, layerWidth, layerHeight, layerColors);
 
             // Layer border
             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
@@ -644,7 +711,6 @@ class PavementDiagramBuilder {
             const baseY = geosyntheticPosition === 'top' ? currentY : currentY + layerHeight;
             const offset = geosyntheticPosition === 'top' ? 8 : -8;
             const hasBothGeosynthetics = layer.geosyntheticEnabled && layer.geosynthetic2Enabled;
-            // Geosynthetic label Y is at midpoint between both lines if both exist
             const geosyntheticLabelY = hasBothGeosynthetics ? baseY + (offset / 2) : baseY;
 
             if (layer.geosyntheticEnabled) {
@@ -679,7 +745,7 @@ class PavementDiagramBuilder {
             this.drawGeosyntheticLine(ctx, geosynthetic.x, geosynthetic.y, geosynthetic.width, geosynthetic.color);
         });
 
-        // Then draw all geosynthetic labels on top (at midpoint Y)
+        // Then draw all geosynthetic labels on top
         geosyntheticsToRender.forEach(geosynthetic => {
             this.drawGeosyntheticLabel(ctx, geosynthetic.x, geosynthetic.labelY, geosynthetic.width, geosynthetic.name, geosynthetic.color, geosynthetic.isPrimary);
         });
@@ -705,27 +771,17 @@ class PavementDiagramBuilder {
         link.click();
     }
 
-    getLayerColor(type) {
-        const colors = {
-            'asphalt': { main: '#2d2d2d', dark: '#1a1a1a' },
-            'concrete': { main: '#b8b8b8', dark: '#8a8a8a' },
-            'aggregate': { main: '#c9a96e', dark: '#a8884d' },
-            'opengraded': { main: '#a0a0a0', dark: '#606060' },
-            'stabilized': { main: '#8b7355', dark: '#6b5344' },
-            'subbase': { main: '#d4a76a', dark: '#b8905a' },
-            'subgrade': { main: '#e8d4a8', dark: '#d4c090' }
-        };
-        return colors[type] || colors['aggregate'];
-    }
-
     drawLayerTexture(ctx, type, x, y, width, height, colors) {
+        const config = this.patternGenerator.getLayerConfig(type);
+        const pattern = config?.pattern || 'scattered-dots';
+
         ctx.save();
         ctx.beginPath();
         ctx.rect(x, y, width, height);
         ctx.clip();
 
-        if (type === 'asphalt') {
-            // Diagonal stripes
+        if (pattern === 'diagonal-stripes') {
+            // Diagonal stripes (asphalt)
             ctx.strokeStyle = colors.dark;
             ctx.lineWidth = 2;
             for (let i = -height; i < width + height; i += 4) {
@@ -734,8 +790,8 @@ class PavementDiagramBuilder {
                 ctx.lineTo(x + i + height, y + height);
                 ctx.stroke();
             }
-        } else if (type === 'concrete') {
-            // Fine speckled pattern for concrete
+        } else if (pattern === 'speckle') {
+            // Fine speckled pattern (concrete)
             ctx.fillStyle = colors.dark;
             for (let i = 0; i < width * height / 80; i++) {
                 const dotX = x + Math.random() * width;
@@ -745,8 +801,8 @@ class PavementDiagramBuilder {
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
-        } else if (type === 'aggregate' || type === 'subbase') {
-            // Scattered dots
+        } else if (pattern === 'scattered-dots') {
+            // Scattered dots (aggregate)
             ctx.fillStyle = colors.dark;
             for (let i = 0; i < width * height / 200; i++) {
                 const dotX = x + Math.random() * width;
@@ -756,8 +812,8 @@ class PavementDiagramBuilder {
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
-        } else if (type === 'opengraded') {
-            // Large uniform stones with gaps
+        } else if (pattern === 'large-stones') {
+            // Large stones (open-graded)
             ctx.fillStyle = colors.dark;
             for (let i = 0; i < width * height / 400; i++) {
                 const dotX = x + Math.random() * width;
@@ -767,8 +823,8 @@ class PavementDiagramBuilder {
                 ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
-        } else if (type === 'stabilized') {
-            // Horizontal stripes
+        } else if (pattern === 'horizontal-stripes') {
+            // Horizontal stripes (stabilized)
             ctx.strokeStyle = colors.dark;
             ctx.lineWidth = 3;
             for (let i = y; i < y + height; i += 6) {
@@ -777,8 +833,8 @@ class PavementDiagramBuilder {
                 ctx.lineTo(x + width, i);
                 ctx.stroke();
             }
-        } else if (type === 'subgrade') {
-            // Diagonal pattern (opposite direction)
+        } else if (pattern === 'diagonal-stripes-reverse') {
+            // Diagonal pattern opposite direction (subgrade)
             ctx.strokeStyle = colors.dark;
             ctx.lineWidth = 2;
             for (let i = -height; i < width + height; i += 10) {
@@ -786,6 +842,76 @@ class PavementDiagramBuilder {
                 ctx.moveTo(x + i + height, y);
                 ctx.lineTo(x + i, y + height);
                 ctx.stroke();
+            }
+        } else if (pattern === 'stabilized-crosshatch') {
+            // Cross-hatch pattern
+            const params = config?.patternParams || {};
+            const spacing = params.spacing || 10;
+            const grayColor = params.grayColor || '#9ca3af';
+
+            ctx.strokeStyle = colors.dark;
+            ctx.lineWidth = 2;
+            for (let i = -height; i < width + height; i += spacing) {
+                ctx.beginPath();
+                ctx.moveTo(x + i + height, y);
+                ctx.lineTo(x + i, y + height);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = grayColor;
+            ctx.lineWidth = 2;
+            for (let i = -height; i < width + height; i += spacing * 1.5) {
+                ctx.beginPath();
+                ctx.moveTo(x + i, y);
+                ctx.lineTo(x + i + height, y + height);
+                ctx.stroke();
+            }
+        } else if (pattern === 'stabilized-banded') {
+            // Banded pattern
+            const params = config?.patternParams || {};
+            const spacing = params.spacing || 10;
+            const grayColor = params.grayColor || '#9ca3af';
+            const bandSpacing = params.bandSpacing || 25;
+            const bandWidth = params.bandWidth || 4;
+
+            ctx.strokeStyle = colors.dark;
+            ctx.lineWidth = 2;
+            for (let i = -height; i < width + height; i += spacing) {
+                ctx.beginPath();
+                ctx.moveTo(x + i + height, y);
+                ctx.lineTo(x + i, y + height);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = grayColor;
+            for (let i = y; i < y + height; i += bandSpacing) {
+                ctx.fillRect(x, i, width, bandWidth);
+            }
+        } else if (pattern === 'stabilized-mottled') {
+            // Mottled pattern with gray spots
+            const params = config?.patternParams || {};
+            const spacing = params.spacing || 10;
+            const grayColor = params.grayColor || '#7a8494';
+
+            // Draw base diagonal stripes
+            ctx.strokeStyle = colors.dark;
+            ctx.lineWidth = 2;
+            for (let i = -height; i < width + height; i += spacing) {
+                ctx.beginPath();
+                ctx.moveTo(x + i + height, y);
+                ctx.lineTo(x + i, y + height);
+                ctx.stroke();
+            }
+
+            // Draw gray spots
+            ctx.fillStyle = grayColor;
+            for (let i = 0; i < width * height / 150; i++) {
+                const dotX = x + Math.random() * width;
+                const dotY = y + Math.random() * height;
+                const radius = 2 + Math.random() * 2;
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
@@ -795,15 +921,7 @@ class PavementDiagramBuilder {
     drawGeosyntheticLine(ctx, x, y, width, color) {
         ctx.save();
 
-        // Map color names to hex values
-        const colorMap = {
-            'black': '#000000',
-            'red': '#cc0000',
-            'green': '#22c55e',
-            'yellow': '#eab308',
-            'blue': '#3b82f6'
-        };
-        const lineColor = colorMap[color] || '#000000';
+        const lineColor = this.patternGenerator.getGeosyntheticColor(color);
 
         // Draw dashed line
         ctx.strokeStyle = lineColor;
@@ -831,22 +949,14 @@ class PavementDiagramBuilder {
     drawGeosyntheticLabel(ctx, x, y, width, name, color, isPrimary = true) {
         ctx.save();
 
-        // Map color names to hex values
-        const colorMap = {
-            'black': '#000000',
-            'red': '#cc0000',
-            'green': '#22c55e',
-            'yellow': '#eab308',
-            'blue': '#3b82f6'
-        };
-        const borderColor = colorMap[color] || '#000000';
+        const borderColor = this.patternGenerator.getGeosyntheticColor(color);
 
         ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
         const textWidth = ctx.measureText(name).width;
         const labelX = isPrimary ? x + width - textWidth - 16 : x + 16;
         const labelPadding = 6;
 
-        // Label background (white, matching other labels)
+        // Label background
         ctx.fillStyle = 'rgba(255,255,255,0.92)';
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = 2;
@@ -1048,6 +1158,7 @@ class PavementDiagramBuilder {
 
 // Initialize application
 let app;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     app = new PavementDiagramBuilder();
+    await app.init();
 });

@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pavement Layer Diagram Builder</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
+            <img src="favicon.svg" alt="" class="header-icon">
             <h1>Pavement Layer Diagram Builder</h1>
         </header>
 
@@ -75,42 +77,11 @@
                         </div>
                     </div>
 
-                    <!-- Legend -->
+                    <!-- Legend (generated dynamically from config) -->
                     <div class="diagram-legend">
                         <h3>Legend</h3>
-                        <div class="legend-items">
-                            <div class="legend-item">
-                                <div class="legend-color layer-asphalt"></div>
-                                <span>Asphalt/HMA</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-concrete"></div>
-                                <span>Concrete/PCC</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-aggregate"></div>
-                                <span>Aggregate Base</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-opengraded"></div>
-                                <span>Open Graded Base</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-stabilized"></div>
-                                <span>Stabilized Base</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-subgrade"></div>
-                                <span>Subgrade</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color layer-subbase"></div>
-                                <span>Sub-Base</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-geosynthetic"></div>
-                                <span>Geosynthetic</span>
-                            </div>
+                        <div id="legendItems" class="legend-items">
+                            <!-- Legend items will be generated dynamically -->
                         </div>
                     </div>
                 </div>
@@ -131,14 +102,7 @@
                 <div class="form-group">
                     <label for="layerType">Layer Type</label>
                     <select id="layerType" required>
-                        <option value="">Select layer type...</option>
-                        <option value="asphalt">Asphalt / HMA</option>
-                        <option value="concrete">Concrete (PCC)</option>
-                        <option value="aggregate">Aggregate Base (Unbound)</option>
-                        <option value="opengraded">Open Graded Base</option>
-                        <option value="stabilized">Stabilized Base (ATB/CTB)</option>
-                        <option value="subbase">Sub-Base</option>
-                        <option value="subgrade">Subgrade</option>
+                        <!-- Options generated dynamically from config -->
                     </select>
                 </div>
 
@@ -254,6 +218,9 @@
         </div>
     </div>
 
+    <script src="config/layer-types.js"></script>
+    <script src="config/geosynthetic-types.js"></script>
+    <script src="js/pattern-generator.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

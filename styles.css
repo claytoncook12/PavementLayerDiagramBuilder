@@ -17,29 +17,6 @@
     --border-color: #e5e7eb;
     --text-color: #1f2937;
     --text-light: #6b7280;
-
-    /* Layer Colors */
-    --asphalt-color: #2d2d2d;
-    --asphalt-dark: #1a1a1a;
-    --concrete-color: #b8b8b8;
-    --concrete-dark: #8a8a8a;
-    --aggregate-color: #d4a76a;
-    --aggregate-dark: #b8905a;
-    --opengraded-color: #a0a0a0;
-    --opengraded-dark: #606060;
-    --stabilized-color: #8b7355;
-    --stabilized-dark: #6b5344;
-    --subbase-color: #d4a76a;
-    --subbase-dark: #b8905a;
-    --subgrade-color: #e8d4a8;
-    --subgrade-dark: #d4c090;
-
-    /* Geosynthetic Colors */
-    --geosynthetic-biaxial-light: #22c55e;
-    --geosynthetic-biaxial-heavy: #f59e0b;
-    --geosynthetic-triaxial-light: #3b82f6;
-    --geosynthetic-triaxial-heavy: #ef4444;
-    --geosynthetic-default: #000000;
 }
 
 body {
@@ -61,6 +38,14 @@ body {
     color: white;
     padding: 1rem 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-icon {
+    width: 32px;
+    height: 32px;
 }
 
 .app-header h1 {
@@ -543,89 +528,6 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Layer Textures */
-.layer-asphalt {
-    background:
-        repeating-linear-gradient(
-            45deg,
-            var(--asphalt-color),
-            var(--asphalt-color) 2px,
-            var(--asphalt-dark) 2px,
-            var(--asphalt-dark) 4px
-        );
-}
-
-.layer-concrete {
-    background:
-        radial-gradient(circle at 15% 20%, var(--concrete-dark) 1px, transparent 1px),
-        radial-gradient(circle at 45% 65%, var(--concrete-dark) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 75% 25%, var(--concrete-dark) 1px, transparent 1px),
-        radial-gradient(circle at 85% 80%, var(--concrete-dark) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 25% 75%, var(--concrete-dark) 1px, transparent 1px),
-        radial-gradient(circle at 55% 35%, var(--concrete-dark) 1px, transparent 1px),
-        radial-gradient(circle at 35% 45%, var(--concrete-dark) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 65% 90%, var(--concrete-dark) 1px, transparent 1px),
-        var(--concrete-color);
-    background-size: 80px 80px;
-}
-
-.layer-aggregate {
-    background:
-        radial-gradient(circle at 20% 30%, var(--aggregate-dark) 2px, transparent 2px),
-        radial-gradient(circle at 60% 70%, var(--aggregate-dark) 3px, transparent 3px),
-        radial-gradient(circle at 80% 20%, var(--aggregate-dark) 2px, transparent 2px),
-        radial-gradient(circle at 40% 50%, var(--aggregate-dark) 2px, transparent 2px),
-        radial-gradient(circle at 10% 80%, var(--aggregate-dark) 3px, transparent 3px),
-        radial-gradient(circle at 90% 60%, var(--aggregate-dark) 2px, transparent 2px),
-        var(--aggregate-color);
-    background-size: 20px 20px;
-}
-
-.layer-opengraded {
-    background:
-        radial-gradient(circle at 15% 25%, var(--opengraded-dark) 5px, transparent 5px),
-        radial-gradient(circle at 50% 15%, var(--opengraded-dark) 6px, transparent 6px),
-        radial-gradient(circle at 85% 30%, var(--opengraded-dark) 5px, transparent 5px),
-        radial-gradient(circle at 25% 70%, var(--opengraded-dark) 6px, transparent 6px),
-        radial-gradient(circle at 60% 55%, var(--opengraded-dark) 5px, transparent 5px),
-        radial-gradient(circle at 90% 75%, var(--opengraded-dark) 6px, transparent 6px),
-        radial-gradient(circle at 40% 90%, var(--opengraded-dark) 5px, transparent 5px),
-        radial-gradient(circle at 75% 85%, var(--opengraded-dark) 5px, transparent 5px),
-        var(--opengraded-color);
-    background-size: 40px 40px;
-}
-
-.layer-stabilized {
-    background:
-        repeating-linear-gradient(
-            0deg,
-            var(--stabilized-color),
-            var(--stabilized-color) 3px,
-            var(--stabilized-dark) 3px,
-            var(--stabilized-dark) 6px
-        );
-}
-
-.layer-subbase {
-    background:
-        radial-gradient(circle at 25% 25%, var(--subbase-dark) 3px, transparent 3px),
-        radial-gradient(circle at 75% 75%, var(--subbase-dark) 4px, transparent 4px),
-        radial-gradient(circle at 50% 50%, var(--subbase-dark) 2px, transparent 2px),
-        var(--subbase-color);
-    background-size: 25px 25px;
-}
-
-.layer-subgrade {
-    background:
-        repeating-linear-gradient(
-            135deg,
-            var(--subgrade-color),
-            var(--subgrade-color) 5px,
-            var(--subgrade-dark) 5px,
-            var(--subgrade-dark) 10px
-        );
-}
-
 /* Geosynthetic Visualization */
 .geosynthetic-indicator {
     position: absolute;
@@ -654,75 +556,6 @@ body {
     position: relative;
     border-top: 2px solid;
     border-bottom: 2px solid;
-}
-
-/* Biaxial Light Duty - Green */
-.geosynthetic-biaxial-light .geosynthetic-line {
-    border-color: var(--geosynthetic-biaxial-light);
-    background: repeating-linear-gradient(
-        90deg,
-        var(--geosynthetic-biaxial-light) 0px,
-        var(--geosynthetic-biaxial-light) 10px,
-        #fff 10px,
-        #fff 14px
-    );
-    box-shadow: 0 0 6px var(--geosynthetic-biaxial-light), 0 2px 4px rgba(0,0,0,0.3);
-}
-
-/* Biaxial Heavy Duty - Orange */
-.geosynthetic-biaxial-heavy .geosynthetic-line {
-    border-color: var(--geosynthetic-biaxial-heavy);
-    background: repeating-linear-gradient(
-        90deg,
-        var(--geosynthetic-biaxial-heavy) 0px,
-        var(--geosynthetic-biaxial-heavy) 10px,
-        #fff 10px,
-        #fff 14px
-    );
-    box-shadow: 0 0 6px var(--geosynthetic-biaxial-heavy), 0 2px 4px rgba(0,0,0,0.3);
-}
-
-/* Triaxial Light Duty - Blue */
-.geosynthetic-triaxial-light .geosynthetic-line {
-    border-color: var(--geosynthetic-triaxial-light);
-    background: repeating-linear-gradient(
-        90deg,
-        var(--geosynthetic-triaxial-light) 0px,
-        var(--geosynthetic-triaxial-light) 8px,
-        #fff 8px,
-        #fff 12px
-    );
-    box-shadow: 0 0 6px var(--geosynthetic-triaxial-light), 0 2px 4px rgba(0,0,0,0.3);
-}
-
-/* Triaxial Heavy Duty - Red */
-.geosynthetic-triaxial-heavy .geosynthetic-line {
-    border-color: var(--geosynthetic-triaxial-heavy);
-    background: repeating-linear-gradient(
-        90deg,
-        var(--geosynthetic-triaxial-heavy) 0px,
-        var(--geosynthetic-triaxial-heavy) 8px,
-        #fff 8px,
-        #fff 12px
-    );
-    box-shadow: 0 0 6px var(--geosynthetic-triaxial-heavy), 0 2px 4px rgba(0,0,0,0.3);
-}
-
-/* Tensar and Other Geosynthetics - Red/Black prominent pattern */
-.geosynthetic-NX750 .geosynthetic-line,
-.geosynthetic-NX850 .geosynthetic-line,
-.geosynthetic-TX5 .geosynthetic-line,
-.geosynthetic-TX7 .geosynthetic-line,
-.geosynthetic-other .geosynthetic-line {
-    border-color: #c00;
-    background: repeating-linear-gradient(
-        90deg,
-        #c00 0px,
-        #c00 12px,
-        #fff 12px,
-        #fff 16px
-    );
-    box-shadow: 0 0 6px rgba(200,0,0,0.6), 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .geosynthetic-label {
@@ -1084,31 +917,3 @@ body {
     cursor: grabbing;
 }
 
-/* Layer type indicator colors in cards */
-.layer-type-indicator.type-asphalt {
-    background: var(--asphalt-color);
-}
-
-.layer-type-indicator.type-concrete {
-    background: var(--concrete-color);
-}
-
-.layer-type-indicator.type-aggregate {
-    background: var(--aggregate-color);
-}
-
-.layer-type-indicator.type-opengraded {
-    background: var(--opengraded-color);
-}
-
-.layer-type-indicator.type-stabilized {
-    background: var(--stabilized-color);
-}
-
-.layer-type-indicator.type-subbase {
-    background: var(--subbase-color);
-}
-
-.layer-type-indicator.type-subgrade {
-    background: var(--subgrade-color);
-}
