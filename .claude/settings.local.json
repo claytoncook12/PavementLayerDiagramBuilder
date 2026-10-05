@@ -5,7 +5,9 @@
       "Bash(python:*)",
       "Bash(attrib:*)",
       "Bash(node:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
