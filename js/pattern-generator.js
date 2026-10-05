@@ -85,35 +85,187 @@ class PatternGenerator {
         return { main: config.color, dark: config.colorDark };
     }
 
-    // Generate CSS background for a layer type
+    // Generate CSS background for a layer type (using SVG data URIs for html2canvas compatibility)
     generateCSSBackground(type) {
         const config = this.getLayerConfig(type);
         if (!config) return '#c9a96e';
 
         const { color, colorDark, pattern, patternParams } = config;
 
+        // Use SVG data URI patterns for better html2canvas compatibility
         switch (pattern) {
             case 'diagonal-stripes':
-                return this._cssPatternDiagonalStripes(color, colorDark, patternParams);
+                return this._svgPatternDiagonalStripes(color, colorDark, patternParams);
             case 'diagonal-stripes-reverse':
-                return this._cssPatternDiagonalStripesReverse(color, colorDark, patternParams);
+                return this._svgPatternDiagonalStripesReverse(color, colorDark, patternParams);
             case 'horizontal-stripes':
-                return this._cssPatternHorizontalStripes(color, colorDark, patternParams);
+                return this._svgPatternHorizontalStripes(color, colorDark, patternParams);
             case 'speckle':
-                return this._cssPatternSpeckle(color, colorDark, patternParams);
+                return this._svgPatternSpeckle(color, colorDark, patternParams);
             case 'scattered-dots':
-                return this._cssPatternScatteredDots(color, colorDark, patternParams);
+                return this._svgPatternScatteredDots(color, colorDark, patternParams);
             case 'large-stones':
-                return this._cssPatternLargeStones(color, colorDark, patternParams);
+                return this._svgPatternLargeStones(color, colorDark, patternParams);
             case 'stabilized-crosshatch':
-                return this._cssPatternStabilizedCrosshatch(color, colorDark, patternParams);
+                return this._svgPatternStabilizedCrosshatch(color, colorDark, patternParams);
             case 'stabilized-banded':
-                return this._cssPatternStabilizedBanded(color, colorDark, patternParams);
+                return this._svgPatternStabilizedBanded(color, colorDark, patternParams);
             case 'stabilized-mottled':
-                return this._cssPatternStabilizedMottled(color, colorDark, patternParams);
+                return this._svgPatternStabilizedMottled(color, colorDark, patternParams);
             default:
                 return color;
         }
+    }
+
+    // Helper to encode SVG as data URI
+    _svgToDataURI(svg) {
+        const encoded = encodeURIComponent(svg)
+            .replace(/'/g, '%27')
+            .replace(/"/g, '%22');
+        return `url('data:image/svg+xml,${encoded}')`; // Use single quotes for HTML attribute compatibility
+    }
+
+    // SVG Pattern: Diagonal stripes (45 deg) - lines go from bottom-left to top-right visually
+    _svgPatternDiagonalStripes(color, colorDark, params) {
+        const { stripeWidth = 2, spacing = 4 } = params || {};
+        const size = spacing;
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            <line x1='0' y1='${size}' x2='${size}' y2='0' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+            <line x1='${-size}' y1='${size}' x2='${size}' y2='${-size}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+            <line x1='0' y1='${size * 2}' x2='${size * 2}' y2='0' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Diagonal stripes reverse (135 deg) - lines go from top-left to bottom-right
+    _svgPatternDiagonalStripesReverse(color, colorDark, params) {
+        const { stripeWidth = 2, spacing = 10 } = params || {};
+        const size = spacing;
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            <line x1='0' y1='0' x2='${size}' y2='${size}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+            <line x1='${-size}' y1='0' x2='${size}' y2='${size * 2}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+            <line x1='0' y1='${-size}' x2='${size * 2}' y2='${size}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Horizontal stripes
+    _svgPatternHorizontalStripes(color, colorDark, params) {
+        const { stripeWidth = 3, spacing = 6 } = params || {};
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='${spacing}'>
+            <rect width='10' height='${spacing}' fill='${color}'/>
+            <rect width='10' height='${stripeWidth}' y='${spacing - stripeWidth}' fill='${colorDark}'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Speckle (concrete-like)
+    _svgPatternSpeckle(color, colorDark, params) {
+        const { density = 80 } = params || {};
+        const size = density;
+        const spots = this._getSpeckleSpots();
+        const circles = spots.map(spot =>
+            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
+        ).join('');
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            ${circles}
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Scattered dots (aggregate-like)
+    _svgPatternScatteredDots(color, colorDark, params) {
+        const { backgroundSize = 20, minRadius = 2, maxRadius = 3 } = params || {};
+        const size = backgroundSize;
+        const spots = this._getScatteredDotsSpots(minRadius, maxRadius);
+        const circles = spots.map(spot =>
+            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
+        ).join('');
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            ${circles}
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Large stones (open-graded)
+    _svgPatternLargeStones(color, colorDark, params) {
+        const { backgroundSize = 40, minRadius = 5, maxRadius = 6 } = params || {};
+        const size = backgroundSize;
+        const spots = this._getLargeStonesSpots(minRadius, maxRadius);
+        const circles = spots.map(spot =>
+            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
+        ).join('');
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            ${circles}
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Stabilized Subgrade Option A - Cross-hatch
+    _svgPatternStabilizedCrosshatch(color, colorDark, params) {
+        const { spacing = 10, grayColor = '#9ca3af' } = params || {};
+        const size = spacing;
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            <line x1='0' y1='0' x2='${size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>
+            <line x1='${-size}' y1='0' x2='${size}' y2='${size * 2}' stroke='${colorDark}' stroke-width='2'/>
+            <line x1='0' y1='${-size}' x2='${size * 2}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>
+            <line x1='0' y1='${size}' x2='${size}' y2='0' stroke='${grayColor}' stroke-width='2'/>
+            <line x1='${-size}' y1='${size}' x2='${size}' y2='${-size}' stroke='${grayColor}' stroke-width='2'/>
+            <line x1='0' y1='${size * 2}' x2='${size * 2}' y2='0' stroke='${grayColor}' stroke-width='2'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Stabilized Subgrade Option B - Banded
+    _svgPatternStabilizedBanded(color, colorDark, params) {
+        const { spacing = 10, grayColor = '#9ca3af', bandSpacing = 25, bandWidth = 4 } = params || {};
+        const size = bandSpacing;
+        // Calculate how many diagonal lines fit in the band spacing
+        const numLines = Math.ceil(size / spacing) + 1;
+        let diagonals = '';
+        for (let i = -1; i <= numLines; i++) {
+            const offset = i * spacing;
+            diagonals += `<line x1='${offset}' y1='0' x2='${offset + size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>`;
+        }
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${spacing}' height='${size}'>
+            <rect width='${spacing}' height='${size}' fill='${color}'/>
+            ${diagonals}
+            <rect width='${spacing}' height='${bandWidth}' y='${size - bandWidth}' fill='${grayColor}'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // SVG Pattern: Stabilized Subgrade Option C - Mottled
+    _svgPatternStabilizedMottled(color, colorDark, params) {
+        const { spacing = 10, grayColor = '#7a8494', mottleDensity = 0.5, minRadius = 2, maxRadius = 3 } = params || {};
+        const size = Math.max(8, Math.round(mottleDensity * 80));
+        const spots = this._getMottledSpots(minRadius, maxRadius);
+
+        // Generate diagonal lines
+        const numLines = Math.ceil(size / spacing) + 2;
+        let diagonals = '';
+        for (let i = -1; i <= numLines; i++) {
+            const offset = i * spacing;
+            diagonals += `<line x1='${offset}' y1='0' x2='${offset + size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>`;
+        }
+
+        // Generate circles
+        const circles = spots.map(spot =>
+            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${grayColor}'/>`
+        ).join('');
+
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+            <rect width='${size}' height='${size}' fill='${color}'/>
+            ${diagonals}
+            ${circles}
+        </svg>`;
+        return this._svgToDataURI(svg);
     }
 
     // CSS Pattern: Diagonal stripes (45 deg)
@@ -313,7 +465,7 @@ class PatternGenerator {
         `;
     }
 
-    // Get CSS background-size for a layer type
+    // Get CSS background-size for a layer type (matches SVG pattern dimensions)
     getCSSBackgroundSize(type) {
         const config = this.getLayerConfig(type);
         if (!config) return 'auto';
@@ -321,15 +473,43 @@ class PatternGenerator {
         const { pattern, patternParams } = config;
 
         switch (pattern) {
-            case 'speckle':
-                return `${patternParams?.density || 80}px ${patternParams?.density || 80}px`;
-            case 'scattered-dots':
-            case 'large-stones':
-                return `${patternParams?.backgroundSize || 20}px ${patternParams?.backgroundSize || 20}px`;
-            case 'stabilized-mottled':
-                // Smaller tile = denser pattern. mottleDensity of 0.1 = 8px tiles, 1 = 80px tiles
+            case 'diagonal-stripes': {
+                const size = patternParams?.spacing || 4;
+                return `${size}px ${size}px`;
+            }
+            case 'diagonal-stripes-reverse': {
+                const size = patternParams?.spacing || 10;
+                return `${size}px ${size}px`;
+            }
+            case 'horizontal-stripes': {
+                const size = patternParams?.spacing || 6;
+                return `10px ${size}px`;
+            }
+            case 'speckle': {
+                const size = patternParams?.density || 80;
+                return `${size}px ${size}px`;
+            }
+            case 'scattered-dots': {
+                const size = patternParams?.backgroundSize || 20;
+                return `${size}px ${size}px`;
+            }
+            case 'large-stones': {
+                const size = patternParams?.backgroundSize || 40;
+                return `${size}px ${size}px`;
+            }
+            case 'stabilized-crosshatch': {
+                const size = patternParams?.spacing || 10;
+                return `${size}px ${size}px`;
+            }
+            case 'stabilized-banded': {
+                const spacing = patternParams?.spacing || 10;
+                const bandSpacing = patternParams?.bandSpacing || 25;
+                return `${spacing}px ${bandSpacing}px`;
+            }
+            case 'stabilized-mottled': {
                 const tileSize = Math.max(8, Math.round((patternParams?.mottleDensity || 0.5) * 80));
                 return `${tileSize}px ${tileSize}px`;
+            }
             default:
                 return 'auto';
         }
@@ -680,16 +860,34 @@ class PatternGenerator {
         };
     }
 
-    // Generate CSS for geosynthetic line
+    // Generate CSS for geosynthetic line (using SVG for html2canvas compatibility)
     generateGeosyntheticCSS(colorName) {
         const hex = this.getGeosyntheticColor(colorName);
         const style = this.getGeosyntheticLineStyle();
 
         return {
             borderColor: hex,
-            background: `repeating-linear-gradient(90deg, ${hex} 0px, ${hex} ${style.dashWidth}px, #fff ${style.dashWidth}px, #fff ${style.dashWidth + style.gapWidth}px)`,
+            background: this._svgGeosyntheticPattern(hex, style),
             boxShadow: `0 0 6px ${hex}, 0 2px 4px rgba(0,0,0,0.3)`
         };
+    }
+
+    // SVG pattern for geosynthetic dashed line
+    _svgGeosyntheticPattern(color, style) {
+        const width = style.dashWidth + style.gapWidth;
+        const dashWidth = style.dashWidth;
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='10'>
+            <rect width='${width}' height='10' fill='white'/>
+            <rect width='${dashWidth}' height='10' fill='${color}'/>
+        </svg>`;
+        return this._svgToDataURI(svg);
+    }
+
+    // Get geosynthetic background size
+    getGeosyntheticBackgroundSize(colorName) {
+        const style = this.getGeosyntheticLineStyle();
+        const width = style.dashWidth + style.gapWidth;
+        return `${width}px 10px`;
     }
 
     // Draw geosynthetic line on canvas

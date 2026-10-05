@@ -169,6 +169,11 @@ class PavementDiagramBuilder {
             this.renderDiagram();
         });
 
+        // Title input change - update diagram display
+        this.diagramTitleInput.addEventListener('input', () => {
+            this.renderDiagram();
+        });
+
         // Save diagram button
         this.saveDiagramBtn.addEventListener('click', () => this.openSaveModal());
 
@@ -493,11 +498,10 @@ class PavementDiagramBuilder {
             if (layer.geosyntheticEnabled) {
                 const displayName = layer.geosyntheticName || 'Geosynthetic 1';
                 const geoColor = this.patternGenerator.getGeosyntheticColor(layer.geosyntheticColor);
-                const geoStyle = this.patternGenerator.getGeosyntheticLineStyle();
 
                 geosyntheticHTML = `
                     <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-primary">
-                        <div class="geosynthetic-line" style="border-color: ${geoColor}; background: repeating-linear-gradient(90deg, ${geoColor} 0px, ${geoColor} ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth + geoStyle.gapWidth}px); box-shadow: 0 0 6px ${geoColor}, 0 2px 4px rgba(0,0,0,0.3);"></div>
+                        <div class="geosynthetic-line" data-geo-color="${layer.geosyntheticColor}"></div>
                     </div>
                 `;
                 geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-primary" style="border-color: ${geoColor};">${this.escapeHtml(displayName)}</span>`;
@@ -508,11 +512,10 @@ class PavementDiagramBuilder {
             if (layer.geosynthetic2Enabled) {
                 const displayName2 = layer.geosynthetic2Name || 'Geosynthetic 2';
                 const geo2Color = this.patternGenerator.getGeosyntheticColor(layer.geosynthetic2Color);
-                const geoStyle = this.patternGenerator.getGeosyntheticLineStyle();
 
                 geosynthetic2HTML = `
                     <div class="geosynthetic-indicator position-${geosyntheticPosition} geosynthetic-secondary">
-                        <div class="geosynthetic-line" style="border-color: ${geo2Color}; background: repeating-linear-gradient(90deg, ${geo2Color} 0px, ${geo2Color} ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth}px, #fff ${geoStyle.dashWidth + geoStyle.gapWidth}px); box-shadow: 0 0 6px ${geo2Color}, 0 2px 4px rgba(0,0,0,0.3);"></div>
+                        <div class="geosynthetic-line" data-geo-color="${layer.geosynthetic2Color}"></div>
                     </div>
                 `;
                 geosyntheticLabelsHTML += `<span class="geosynthetic-label-standalone position-${geosyntheticPosition} label-secondary" style="border-color: ${geo2Color};">${this.escapeHtml(displayName2)}</span>`;
@@ -538,15 +541,21 @@ class PavementDiagramBuilder {
             `;
         });
 
+        const diagramTitle = this.diagramTitleInput.value.trim();
+        const titleHTML = diagramTitle ? `<div class="diagram-title-display">${this.escapeHtml(diagramTitle)}</div>` : '';
+
         this.pavementDiagram.innerHTML = `
-            <div class="diagram-wrapper">
-                <div class="thickness-column">
-                    ${thicknessColumnHTML}
-                </div>
-                <div class="layers-column">
-                    ${layersColumnHTML}
+            <div class="diagram-content">
+                <div class="diagram-wrapper">
+                    <div class="thickness-column">
+                        ${thicknessColumnHTML}
+                    </div>
+                    <div class="layers-column">
+                        ${layersColumnHTML}
+                    </div>
                 </div>
             </div>
+            ${titleHTML}
         `;
 
         // Apply dynamic width
@@ -554,6 +563,9 @@ class PavementDiagramBuilder {
 
         // Apply dynamic layer styles from config
         this.applyLayerStyles();
+
+        // Apply geosynthetic styles
+        this.applyGeosyntheticStyles();
     }
 
     applyLayerStyles() {
@@ -561,6 +573,19 @@ class PavementDiagramBuilder {
         layerVisuals.forEach(element => {
             const type = element.dataset.layerType;
             this.patternGenerator.applyLayerStyle(element, type);
+        });
+    }
+
+    applyGeosyntheticStyles() {
+        const geoLines = this.pavementDiagram.querySelectorAll('.geosynthetic-line[data-geo-color]');
+        geoLines.forEach(element => {
+            const colorName = element.dataset.geoColor;
+            const css = this.patternGenerator.generateGeosyntheticCSS(colorName);
+            const backgroundSize = this.patternGenerator.getGeosyntheticBackgroundSize(colorName);
+            element.style.borderColor = css.borderColor;
+            element.style.background = css.background;
+            element.style.backgroundSize = backgroundSize;
+            element.style.boxShadow = css.boxShadow;
         });
     }
 
@@ -583,11 +608,10 @@ class PavementDiagramBuilder {
         for (const [type, config] of Object.entries(layerTypes)) {
             const background = this.patternGenerator.generateCSSBackground(type);
             const backgroundSize = this.patternGenerator.getCSSBackgroundSize(type);
-            const style = `background: ${background};${backgroundSize !== 'auto' ? ` background-size: ${backgroundSize};` : ''}`;
 
             html += `
                 <div class="legend-item">
-                    <div class="legend-color" style="${style}"></div>
+                    <div class="legend-color" data-layer-type="${type}"></div>
                     <span>${config.name}</span>
                 </div>
             `;
@@ -602,6 +626,13 @@ class PavementDiagramBuilder {
         `;
 
         this.legendItems.innerHTML = html;
+
+        // Apply styles via JavaScript to avoid HTML attribute quote issues
+        const legendColors = this.legendItems.querySelectorAll('.legend-color[data-layer-type]');
+        legendColors.forEach(el => {
+            const type = el.dataset.layerType;
+            this.patternGenerator.applyLayerStyle(el, type);
+        });
     }
 
     escapeHtml(text) {
@@ -610,50 +641,30 @@ class PavementDiagramBuilder {
         return div.innerHTML;
     }
 
-    exportToPng() {
+    async exportToPng() {
         if (this.layers.length === 0) {
             alert('No layers to export. Add layers first.');
             return;
         }
 
-        // Generate SVG and render to canvas for PNG
-        // This ensures PNG matches SVG/CSS exactly
-        const { svg, width, height } = this.generateSvgString();
-        const dpr = 4; // High resolution
-
-        // Create image from SVG
-        const img = new Image();
-        const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
-
-        img.onload = () => {
-            // Create canvas at high resolution
-            const canvas = document.createElement('canvas');
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            const ctx = canvas.getContext('2d');
-
-            // Scale and draw SVG
-            ctx.scale(dpr, dpr);
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Clean up
-            URL.revokeObjectURL(url);
+        try {
+            // Use html2canvas to capture the exact HTML render
+            const canvas = await html2canvas(this.pavementDiagram, {
+                scale: 4, // High resolution (4x)
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
 
             // Download PNG
             const link = document.createElement('a');
             link.download = 'pavement-section-diagram.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
-        };
-
-        img.onerror = (err) => {
-            console.error('Failed to load SVG for PNG export:', err);
-            URL.revokeObjectURL(url);
-            alert('PNG export failed. Try SVG export instead.');
-        };
-
-        img.src = url;
+        } catch (err) {
+            console.error('PNG export failed:', err);
+            alert('PNG export failed. Please try again.');
+        }
     }
 
     exportToSvg() {
