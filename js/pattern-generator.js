@@ -125,11 +125,55 @@ class PatternGenerator {
         return `url('data:image/svg+xml,${encoded}')`; // Use single quotes for HTML attribute compatibility
     }
 
+    // Helper to generate circles with edge wrapping (prevents clipping at tile boundaries)
+    _generateWrappedCircles(spots, size, fillColor) {
+        let circles = '';
+        for (const spot of spots) {
+            const cx = spot.px * size;
+            const cy = spot.py * size;
+            const r = spot.radius;
+
+            // Main circle
+            circles += `<circle cx='${cx}' cy='${cy}' r='${r}' fill='${fillColor}'/>`;
+
+            // Wrap horizontally if near edges
+            if (cx - r < 0) {
+                circles += `<circle cx='${cx + size}' cy='${cy}' r='${r}' fill='${fillColor}'/>`;
+            }
+            if (cx + r > size) {
+                circles += `<circle cx='${cx - size}' cy='${cy}' r='${r}' fill='${fillColor}'/>`;
+            }
+
+            // Wrap vertically if near edges
+            if (cy - r < 0) {
+                circles += `<circle cx='${cx}' cy='${cy + size}' r='${r}' fill='${fillColor}'/>`;
+            }
+            if (cy + r > size) {
+                circles += `<circle cx='${cx}' cy='${cy - size}' r='${r}' fill='${fillColor}'/>`;
+            }
+
+            // Wrap corners if needed
+            if (cx - r < 0 && cy - r < 0) {
+                circles += `<circle cx='${cx + size}' cy='${cy + size}' r='${r}' fill='${fillColor}'/>`;
+            }
+            if (cx + r > size && cy - r < 0) {
+                circles += `<circle cx='${cx - size}' cy='${cy + size}' r='${r}' fill='${fillColor}'/>`;
+            }
+            if (cx - r < 0 && cy + r > size) {
+                circles += `<circle cx='${cx + size}' cy='${cy - size}' r='${r}' fill='${fillColor}'/>`;
+            }
+            if (cx + r > size && cy + r > size) {
+                circles += `<circle cx='${cx - size}' cy='${cy - size}' r='${r}' fill='${fillColor}'/>`;
+            }
+        }
+        return circles;
+    }
+
     // SVG Pattern: Diagonal stripes (45 deg) - lines go from bottom-left to top-right visually
     _svgPatternDiagonalStripes(color, colorDark, params) {
         const { stripeWidth = 2, spacing = 4 } = params || {};
         const size = spacing;
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             <line x1='0' y1='${size}' x2='${size}' y2='0' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
             <line x1='${-size}' y1='${size}' x2='${size}' y2='${-size}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
@@ -142,7 +186,7 @@ class PatternGenerator {
     _svgPatternDiagonalStripesReverse(color, colorDark, params) {
         const { stripeWidth = 2, spacing = 10 } = params || {};
         const size = spacing;
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             <line x1='0' y1='0' x2='${size}' y2='${size}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
             <line x1='${-size}' y1='0' x2='${size}' y2='${size * 2}' stroke='${colorDark}' stroke-width='${stripeWidth}'/>
@@ -154,7 +198,7 @@ class PatternGenerator {
     // SVG Pattern: Horizontal stripes
     _svgPatternHorizontalStripes(color, colorDark, params) {
         const { stripeWidth = 3, spacing = 6 } = params || {};
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='${spacing}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='${spacing}' shape-rendering='crispEdges'>
             <rect width='10' height='${spacing}' fill='${color}'/>
             <rect width='10' height='${stripeWidth}' y='${spacing - stripeWidth}' fill='${colorDark}'/>
         </svg>`;
@@ -166,10 +210,8 @@ class PatternGenerator {
         const { density = 80 } = params || {};
         const size = density;
         const spots = this._getSpeckleSpots();
-        const circles = spots.map(spot =>
-            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
-        ).join('');
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const circles = this._generateWrappedCircles(spots, size, colorDark);
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             ${circles}
         </svg>`;
@@ -181,10 +223,8 @@ class PatternGenerator {
         const { backgroundSize = 20, minRadius = 2, maxRadius = 3 } = params || {};
         const size = backgroundSize;
         const spots = this._getScatteredDotsSpots(minRadius, maxRadius);
-        const circles = spots.map(spot =>
-            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
-        ).join('');
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const circles = this._generateWrappedCircles(spots, size, colorDark);
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             ${circles}
         </svg>`;
@@ -196,10 +236,8 @@ class PatternGenerator {
         const { backgroundSize = 40, minRadius = 5, maxRadius = 6 } = params || {};
         const size = backgroundSize;
         const spots = this._getLargeStonesSpots(minRadius, maxRadius);
-        const circles = spots.map(spot =>
-            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${colorDark}'/>`
-        ).join('');
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const circles = this._generateWrappedCircles(spots, size, colorDark);
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             ${circles}
         </svg>`;
@@ -210,7 +248,7 @@ class PatternGenerator {
     _svgPatternStabilizedCrosshatch(color, colorDark, params) {
         const { spacing = 10, grayColor = '#9ca3af' } = params || {};
         const size = spacing;
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             <line x1='0' y1='0' x2='${size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>
             <line x1='${-size}' y1='0' x2='${size}' y2='${size * 2}' stroke='${colorDark}' stroke-width='2'/>
@@ -233,7 +271,7 @@ class PatternGenerator {
             const offset = i * spacing;
             diagonals += `<line x1='${offset}' y1='0' x2='${offset + size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>`;
         }
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${spacing}' height='${size}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${spacing}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${spacing}' height='${size}' fill='${color}'/>
             ${diagonals}
             <rect width='${spacing}' height='${bandWidth}' y='${size - bandWidth}' fill='${grayColor}'/>
@@ -255,12 +293,10 @@ class PatternGenerator {
             diagonals += `<line x1='${offset}' y1='0' x2='${offset + size}' y2='${size}' stroke='${colorDark}' stroke-width='2'/>`;
         }
 
-        // Generate circles
-        const circles = spots.map(spot =>
-            `<circle cx='${spot.px * size}' cy='${spot.py * size}' r='${spot.radius}' fill='${grayColor}'/>`
-        ).join('');
+        // Generate wrapped circles
+        const circles = this._generateWrappedCircles(spots, size, grayColor);
 
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' shape-rendering='crispEdges'>
             <rect width='${size}' height='${size}' fill='${color}'/>
             ${diagonals}
             ${circles}
@@ -876,7 +912,7 @@ class PatternGenerator {
     _svgGeosyntheticPattern(color, style) {
         const width = style.dashWidth + style.gapWidth;
         const dashWidth = style.dashWidth;
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='10'>
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='10' shape-rendering='crispEdges'>
             <rect width='${width}' height='10' fill='white'/>
             <rect width='${dashWidth}' height='10' fill='${color}'/>
         </svg>`;

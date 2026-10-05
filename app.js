@@ -617,14 +617,6 @@ class PavementDiagramBuilder {
             `;
         }
 
-        // Add geosynthetic legend item
-        html += `
-            <div class="legend-item">
-                <div class="legend-geosynthetic"></div>
-                <span>Geosynthetic</span>
-            </div>
-        `;
-
         this.legendItems.innerHTML = html;
 
         // Apply styles via JavaScript to avoid HTML attribute quote issues
@@ -1331,7 +1323,10 @@ class PavementDiagramBuilder {
     getSavedDiagrams() {
         try {
             const saved = localStorage.getItem('pavementDiagrams');
-            return saved ? JSON.parse(saved) : [];
+            const diagrams = saved ? JSON.parse(saved) : [];
+            // Sort by date saved, most recent first
+            diagrams.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+            return diagrams;
         } catch (e) {
             console.error('Error loading saved diagrams:', e);
             return [];
@@ -1349,11 +1344,13 @@ class PavementDiagramBuilder {
         this.savedDiagramsList.innerHTML = savedDiagrams.map(diagram => {
             const date = new Date(diagram.savedAt);
             const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const titleDisplay = diagram.diagramTitle ? `<div class="saved-diagram-title">${this.escapeHtml(diagram.diagramTitle)}</div>` : '';
 
             return `
                 <div class="saved-diagram-item" data-id="${diagram.id}">
                     <div class="saved-diagram-info" onclick="app.loadDiagram('${diagram.id}')">
                         <div class="saved-diagram-name">${this.escapeHtml(diagram.name)}</div>
+                        ${titleDisplay}
                         <div class="saved-diagram-date">${dateStr} &bull; ${diagram.layers.length} layers</div>
                     </div>
                     <div class="saved-diagram-actions">
