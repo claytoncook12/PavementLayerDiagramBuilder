@@ -4,7 +4,8 @@
       "Bash(dir:*)",
       "Bash(python:*)",
       "Bash(attrib:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
